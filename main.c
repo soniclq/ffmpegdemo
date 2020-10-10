@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <libavutil/time.h>
 #include "libavformat/avformat.h"
 #include "libavcodec/avcodec.h"
 
@@ -12,7 +13,8 @@ int main() {
 
 
 //    char filepath[]="http://ali-pull.v.momocdn.com/momo/m_15761178920835d1f48122f186c791.flv?uniqtype=1";
-    char filepath[] = "/Users/momo/Documents/pkvideo/local.flv";
+//    char filepath[] = "/Users/momo/Documents/pkvideo/local.flv"
+    char filepath [] = "/Users/momo/Downloads/video-h265.mkv";
     av_register_all();//注册组件
     avformat_network_init();//支持网络流
     pFormatCtx = avformat_alloc_context();//初始化AVFormatContext
@@ -52,7 +54,9 @@ int main() {
 //    av_dict_set(&d, "name", "jhuster", 0);
 
 //    av_dict_set(&opts, "refcounted_frames", "1", 0);
-    av_dict_set(&opts, "threads", "auto", 0);
+//    av_dict_set(&opts, "thread_type", "slice", 0);
+//    av_dict_set(&opts, "threads", "auto", 0);
+//    av_dict_set(&opts, "thread_type", "slice", 0);
 //    av_dict_set(&opts, "threads", "1", 0);
 //    av_dict_set(&opts, "skip_loop_filter", "0", 0);
 
@@ -68,6 +72,7 @@ int main() {
     pFrame=avcodec_alloc_frame();//存储解码后AVFrame
     pFrameYUV=avcodec_alloc_frame();//存储转换后AVFrame（为什么要转换？后文解释）
     uint8_t *out_buffer;
+    printf("xxxxpthread thread type %d \n" + pCodecCtx->active_thread_type);
     out_buffer=(uint8_t*)malloc(avpicture_get_size(PIX_FMT_YUV420P, pCodecCtx->width, pCodecCtx->height));//分配AVFrame所需内存
     avpicture_fill((AVPicture *)pFrameYUV, out_buffer, PIX_FMT_YUV420P, pCodecCtx->width, pCodecCtx->height);//填充AVFrame
     //------------SDL初始化--------
@@ -96,6 +101,8 @@ int main() {
     av_dump_format(pFormatCtx,0,filepath,0);
     printf("-------------------------------------------------\n");
     //------------------------------
+    int64_t beg = av_gettime();
+    int picNum = 0;
     while(av_read_frame(pFormatCtx, packet)>=0)//循环获取压缩数据包AVPacket
     {
         if(packet->stream_index==videoindex)
@@ -106,9 +113,15 @@ int main() {
                 printf("解码错误\n");
                 return -1;
             }
-            printf("avcodec_decode_video2 ret %d, got picture %d , count %d\n", ret, got_picture, ++count);
+//            printf("avcodec_decode_video2 ret %d, got picture %d , count %d, pict_type %d\n", ret, got_picture, ++count, pFrame->pict_type);
             if(got_picture)
             {
+                picNum ++;
+                if(av_gettime() - beg > 1000 * 1000){
+                    printf("fps %d\n", picNum);
+                    beg = av_gettime();
+                    picNum = 0;
+                }
                 //像素格式转换。pFrame转换为pFrameYUV。
 //                img_convert_ctx = sws_getContext(pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height, PIX_FMT_YUV420P, SWS_BICUBIC, NULL, NULL, NULL);
 //                sws_scale(img_convert_ctx, (const uint8_t* const*)pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pFrameYUV->data, pFrameYUV->linesize);
@@ -134,6 +147,7 @@ int main() {
         }
         av_free_packet(packet);
     }
+    printf("count %d\n", picNum);
 //    delete[] out_buffer;
     free(out_buffer);
     av_free(pFrameYUV);

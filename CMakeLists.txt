@@ -3,8 +3,8 @@ project(Project C)
 
 set(CMAKE_C_STANDARD 99)
 
-include_directories(/Users/momo/Downloads/ffmpeg-2.8.15)
-link_directories("/Users/momo/Downloads/ffmpeg-2.8.15/staticlib") #库文件目录
+include_directories(/Users/momo/Downloads/ffmpeg-2.8.17)
+link_directories("/Users/momo/Downloads/ffmpeg-2.8.17/staticlib") #库文件目录
 #link_libraries(libavutil.a libavformat.a  libavcodec.a ) #要包含的库名称
 link_libraries(z iconv bz2 lzma   avutil avformat avcodec swscale swresample)
 #target_link_libraries(
